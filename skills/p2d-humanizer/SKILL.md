@@ -8,7 +8,11 @@ version: "1.1"
 
 Students and conference audiences respond poorly to AI-sounding presentations. This stage removes the statistical tells of AI-generated writing from both the slide text and speaker notes, then re-grounds the prose in the presenter's actual delivery voice from `presentation_style.md`.
 
-Built from the `blader/humanizer` Claude Code skill's 32-pattern taxonomy and the `posed-humanizer` personalization model, adapted for academic presentation contexts: preserve technical precision and citations while making the delivery feel human.
+Built from two open-source humanizer skills and adapted for academic presentation contexts (preserve technical precision and citations while making the delivery feel human):
+
+- **[blader/humanizer](https://github.com/blader/humanizer)** — the 32-pattern AI-tell taxonomy and the core detection/rewriting approach. Based on Wikipedia's "Signs of AI Writing" guide (WikiProject AI Cleanup).
+- **[hardikpandya/stop-slop](https://github.com/hardikpandya/stop-slop)** (via the `humanizer-zh` Chinese adaptation) — additional pattern coverage and the /50 quality scoring rubric.
+- **`posed-humanizer`** (POSED skill set) — persona-grounded personalization model; audience-aware blending between script voice and audience-facing prose.
 
 ---
 

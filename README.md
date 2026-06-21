@@ -161,6 +161,21 @@ Current version: **p2d_skill.1.3**
 
 ---
 
+## Credits
+
+This skill set builds on the following open-source Claude Code skills:
+
+| Skill | Author | Used for |
+|---|---|---|
+| [blader/humanizer](https://github.com/blader/humanizer) | @blader | 32-pattern AI-tell taxonomy; core detection/rewriting approach. Based on Wikipedia's "Signs of AI Writing" (WikiProject AI Cleanup). |
+| [hardikpandya/stop-slop](https://github.com/hardikpandya/stop-slop) | @hardikpandya | Additional pattern coverage; /50 quality scoring rubric (via the `humanizer-zh` adaptation). |
+| [zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides) | @zarazhangrui | Phase 2 "show don't tell" 3-preview template gate; 47-template bold-template-pack; 1920×1080 fixed-stage engine. |
+| [op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill) | @op7418 (歸藏) | Visual quality checklist approach; distinctive typography + palette philosophy. |
+
+The paper-to-deck pipeline structure is ported from Dr. Ma's n8n paper-to-presentation v2.4.1 workflow (192 nodes).
+
+---
+
 ## Designed at
 
 ECE Department, University of Wisconsin–Platteville  

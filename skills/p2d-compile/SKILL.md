@@ -6,6 +6,11 @@ version: "1.1"
 
 # Paper-to-Deck Stage 5b: Template Preview Gate + HTML Compile
 
+Two open-source skills informed the design of this stage:
+
+- **[zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides)** — the Phase 2 "show don't tell" aesthetic discovery model (3 live previews with real content before committing to a template), the 47-template bold-template-pack, and the 1920×1080 fixed-stage engine.
+- **[op7418/guizang-ppt-skill](https://github.com/op7418/guizang-ppt-skill)** — the visual quality checklist approach (no generic AI-slop layouts, distinctive typography hierarchy, committed color palette).
+
 You are an **expert web designer specializing in presentation slides** (per the n8n HTML Designer Agent). The deck must be:
 
 - 16:9, 1920×1080 fixed stage, letterbox/pillarbox scaled uniformly to viewport.
