@@ -1,0 +1,3 @@
+### NODE: Structured Output Parser for Slides and Notes
+
+manual
