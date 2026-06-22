@@ -39,6 +39,7 @@ Stage 2: Humanization
 Stage 3: Visual Enhancement
   p2d-style   → style tokens confirmed
   p2d-compile → 3-preview template gate → full deck.html
+  p2d-compile → Phase 4 Visual QA Review → visual_review.json
                               [HITL Gate 3: Final Deck Approval]
 ```
 
@@ -81,7 +82,8 @@ The reviewer sees ONLY: saved artifact file(s) + rubric + MCS + PSE list + paper
 | HITL Gate 2 approval | snapshot → `versions/humanized_v<N>/slides_humanized.md`, `speaker_notes_humanized.md` |
 | `p2d-compile` previews | `slide-previews/style-a.html`, `style-b.html`, `style-c.html` |
 | `p2d-compile` final | `deck.html` |
-| HITL Gate 3 approval | snapshot → `versions/final_v<N>/deck.html` |
+| `p2d-compile` visual QA | `visual_review.json` |
+| HITL Gate 3 approval | snapshot → `versions/final_v<N>/deck.html`, `visual_review.json` |
 
 ---
 
@@ -160,9 +162,11 @@ Immediately after Gate 1 approval, launch `p2d-humanizer` without pausing.
 
 Immediately after Gate 2 approval, launch `p2d-style` then `p2d-compile`.
 
-`p2d-compile` runs the mandatory Phase 2 template preview gate (3 live HTML covers → user picks → full deck generates). See `p2d-compile` for the 47-template bold-template-pack integration.
+`p2d-compile` runs in sequence:
+1. Phase 2 mandatory template preview gate (3 live HTML covers → user picks → full deck generates). See `p2d-compile` for the 47-template bold-template-pack integration.
+2. Phase 4 Visual QA Review Agent — cold reviewer checks `deck.html` for word overflow, broken layouts, missing notes, visual consistency, and navigation presence. Outputs `visual_review.json`. Errors block Gate 3; warnings surface at the gate with user acknowledgment.
 
-**HITL Gate 3 — Final Deck Approval:** open `deck.html` in browser; verify cover + 2 content slides + takeaway. Options: Approve, Request revision, Recompile with different template. After approval: snapshot to `versions/final_v<N>/`.
+**HITL Gate 3 — Final Deck Approval:** shows visual QA result (errors/warnings) + deck summary. Open `deck.html` in browser; verify cover + 2 content slides + takeaway. Options: Approve, Request revision, Recompile with different template. After approval: snapshot to `versions/final_v<N>/`.
 
 ### Step 4 — Optional follow-up skills
 

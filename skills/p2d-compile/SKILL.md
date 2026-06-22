@@ -1,6 +1,6 @@
 ---
 name: p2d-compile
-description: Paper-to-deck Stage 5b — Template Preview Gate + HTML Deck Assembly. Before generating the full HTML deck, runs a mandatory Phase 2 template preview gate: 3 live single-slide HTML cover previews from the 47-template bold-template-pack (audience/context match, bold aesthetic match, wildcard), presenter picks a style, then the full deck.html is generated using that template's design.md verbatim. No Claude image generation — visual hints become placeholder figure elements. Uses the frontend-slides 1920x1080 fixed-stage system with pacing timer. Triggers: when the umbrella paper-to-deck skill dispatches Stage 5b after humanization is approved.
+description: Paper-to-deck Stage 5b — Template Preview Gate + HTML Deck Assembly. Before generating the full HTML deck, runs a mandatory Phase 2 template preview gate: 3 live single-slide HTML cover previews from the 47-template bold-template-pack (audience/context match, bold aesthetic match, wildcard), presenter picks a style, then the full deck.html is generated using that template's design.md verbatim. After compile, runs a mandatory Phase 4 Visual QA Reviewer pass (14 checks: word overflow, bullet count, notes embedding, visual directive fulfillment, heading consistency, navigation, pacing timer, self-containment) before the final HITL gate. No Claude image generation — visual hints become placeholder figure elements. Uses the frontend-slides 1920x1080 fixed-stage system with pacing timer. Triggers: when the umbrella paper-to-deck skill dispatches Stage 5b after humanization is approved.
 version: "1.1"
 ---
 
@@ -162,6 +162,52 @@ The humanized slides format follows the same `---SLIDES START/END---` delimiter 
 | Takeaway | MCS echoed in the presenter's voice (max 3 bullets) |
 | References | Paper's bibliography entries |
 
+### Layout Optimization Rule (REQUIRED for every content slide)
+
+The default failure mode is rendering items at their natural size and centering them, leaving dead whitespace below. This must never happen.
+
+**Rule: for every visual area, choose the arrangement that maximizes the average font size, not the first arrangement that technically fits.**
+
+Follow this decision process for each slide's visual area before writing any HTML:
+
+| Items | Try these arrangements | Pick based on |
+|---|---|---|
+| **1 item** (single box, diagram, table) | Full-width + full-height stretch | Does the item fill the vis area? If not, enlarge font until it does |
+| **2 items** | (A) side-by-side: `grid-template-columns:1fr 1fr` (narrower boxes, wider slide) | Compare: which arrangement makes each item's text larger? |
+| | (B) stacked: `flex-direction:column`, each item `flex:1` (taller boxes, full width) | Pick whichever yields the larger readable font size |
+| **3 items** | (A) 3-column row: `grid-template-columns:1fr 1fr 1fr` | Pick whichever makes the text biggest |
+| | (B) 1-column stack: each item `flex:1` | — |
+| **4 items** | (A) 2×2 grid: `grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr` | Almost always better than 1×4 or 4×1 |
+| | (B) 1×4 row (only if items are single-number stats or very short labels) | — |
+| **5+ items** | Keep as list/table; maximize font via `justify-content:space-between` | Never let items cluster at the top |
+
+**Stretch enforcement (mandatory on every visual container):**
+- The outer `.vis` area uses `flex:1; display:flex; flex-direction:column; align-items:stretch` — it already fills the slide's non-title space.
+- Every direct child of `.vis` MUST receive `flex:1` or `height:100%` so it expands into that space.
+- Grid containers must use `align-items:stretch` so cells fill their rows.
+- Individual box/card elements must use `display:flex; flex-direction:column; justify-content:center` so text is centered in the full cell height.
+- After writing the slide HTML, mentally ask: "Would this slide have any large empty navy area?" If yes, revisit the layout.
+
+**Anti-pattern (do not do):**
+```
+❌ <div style="display:grid;grid-template-columns:1fr 1fr;align-items:center">
+     <div class="box" style="...natural height...">...</div>
+     <div class="box" style="...natural height...">...</div>
+   </div>
+   <!-- Result: boxes float in top half, bottom half empty -->
+```
+
+**Correct pattern:**
+```
+✓ <div class="vis">
+    <div style="flex:1;display:flex;flex-direction:column;gap:...">
+      <div class="box" style="flex:1">...</div>
+      <div class="box" style="flex:1">...</div>
+    </div>
+  </div>
+  <!-- Result: each box fills exactly half the vis height -->
+```
+
 ### Visual treatment (NO image generation)
 
 For each slide's `(Visual: …)` line:
@@ -193,12 +239,141 @@ Full slide controller — keyboard (`← →`, Space, Home, End), touch swipe (5
 
 ---
 
-## Phase 4: Output
+## Phase 4: Visual QA Review Agent
+
+**Role:** cold reviewer. Reads ONLY `deck.html`, `slides_humanized.md` (for visual directives), and `manifest.json`. Does NOT see the compiler's reasoning. Runs automatically after Phase 3 writes `deck.html`; HITL Gate 3 does not open until this pass completes.
+
+### Check Group 1: Content Density
+
+For each `<section class="slide">` (or equivalent slide element):
+
+1. **Word count per slide**: Strip HTML tags from visible content. Exclude: `<!-- NOTES: ... -->` comments, `data-notes` attributes, elements with `display:none`/`visibility:hidden`. Count words in body text only (not the title).
+   - **ERROR** if any slide exceeds 120 words of visible body text (overflow risk at conference viewing distance)
+   - **WARNING** if any slide exceeds 80 words
+
+2. **Bullet count per slide**: Count `<li>` elements per slide.
+   - **ERROR** if any slide has >5 bullets; in `conference-talk` mode: >4
+
+3. **Title length**: Count characters in each slide title element.
+   - **WARNING** if any title exceeds 90 characters (may wrap at typical font sizes)
+
+### Check Group 2: Structural Completeness
+
+4. **Notes embedding**: Every content slide must have a notes block — one of: `<!-- NOTES: ... -->`, `data-notes="..."`, or `<div class="notes">`. Notes must be non-empty (>10 words).
+   - **ERROR** if notes are missing or empty on a content slide (cover and Q&A slides exempt)
+
+5. **Visual directives fulfilled**: For each slide in `slides_humanized.md` that contains a `(Visual: ...)` line, verify the compiled slide has at least one visual element: `<svg>`, `<canvas>`, `<figure>`, `<table>`, or a div with a visual class (`.diagram`, `.chart`, `.comparison`, `.placeholder`).
+   - **WARNING** if a visual directive was silently dropped (no visual element on that slide)
+
+6. **Slide count**: Verify actual slide count matches `manifest.generatedArtifacts.detailedOutline.totalSlides` (±1 for Q&A slide).
+   - **WARNING** if mismatch
+
+### Check Group 3: Visual Consistency
+
+7. **Heading element consistency**: All content slide main titles should use the same element/class. Flag slides that use inline `style="font-size:..."` on headings instead of the template class.
+   - **WARNING**
+
+8. **Accent color tokens**: Hex color values in inline `style=""` attributes should match the template's token set from `style_tokens.json`. Flag improvised hex values not present in the `<style>` block's CSS variables.
+   - **WARNING**
+
+9. **Bottom bar**: Verify the gold bottom bar exists — either as a CSS `::after` rule on `.slide` in the `<style>` block, or as an explicit bar element on every slide.
+   - **WARNING** if no bottom bar mechanism found
+
+### Check Group 4: Navigation & Timer
+
+10. **Keyboard navigation**: Verify JS handles at minimum `ArrowRight`, `ArrowLeft`, and `Space`.
+    - **ERROR** if navigation is missing (presenter cannot advance slides)
+
+11. **Pacing timer**: Verify timer setup — total-time variable (`totalSec`, `totalMinutes`, or equivalent) and a `setInterval`/`requestAnimationFrame` update loop.
+    - **WARNING** if missing (timer is a signature feature of this pipeline)
+
+12. **Progress bar**: Verify a progress element and JS that updates its width or value as slides advance.
+    - **WARNING** if missing
+
+### Check Group 5: Self-Containment
+
+13. **External dependencies**: Scan all `<link href="...">` and `<script src="...">` tags. Only allowed: `fonts.googleapis.com` and `fonts.gstatic.com`. Any other external CDN load breaks the deck offline.
+    - **WARNING** for each disallowed external load
+
+14. **DOCTYPE**: Verify `<!DOCTYPE html>` is present as the first line.
+    - **ERROR** if missing
+
+### Screenshot pass (run if preview tools are available)
+
+If `mcp__Claude_Preview__preview_start` is available:
+1. Start a local preview of `deck.html`
+2. Screenshot the cover slide
+3. Navigate to the slide with the highest word count found in Group 1
+4. Screenshot
+5. Navigate to the takeaway slide (second-to-last content slide)
+6. Screenshot
+
+Visually inspect for: text clipped at slide edges, overlapping elements, font too small to read from 3 meters, broken SVG diagrams, wrong background colors. Add findings as WARNINGs.
+
+If preview tools are not available: set `screenshot_pass: "skipped"` in the report and add the note: "Recommend opening `deck.html` in a browser at full screen before presenting — check the densest content slide for overflow."
+
+### Gate behavior
+
+| Severity | What happens |
+|---|---|
+| **ERROR** | Auto-fix if unambiguous (see policy below). Otherwise: block Gate 3, present error list with a proposed fix per item. Gate opens only after all errors are resolved. |
+| **WARNING** | Present with Gate 3 summary. Gate opens with user acknowledgment ("proceed with warnings"). |
+| **CLEAN** (no errors, no warnings) | Gate 3 opens directly. |
+
+### Auto-fix policy
+
+Apply automatically, then note the fix in `visual_review.json`:
+
+| Error type | Auto-fix |
+|---|---|
+| Notes missing on slide N | Pull the corresponding block from `speaker_notes_humanized.md`, embed as `data-notes="..."` on the slide element |
+| Missing `<!DOCTYPE html>` | Prepend `<!DOCTYPE html>\n` to the file |
+
+For all other errors (word overflow, bullet overflow, missing navigation): present the error and a proposed fix; apply only with user confirmation.
+
+### Output: `visual_review.json`
+
+```json
+{
+  "reviewed_at": "<iso8601>",
+  "slide_count": 13,
+  "errors": [
+    {
+      "slide": "Slide 7",
+      "check": "word_count",
+      "value": 127,
+      "threshold": 120,
+      "message": "Body exceeds 120 words — overflow risk at conference-room viewing distance",
+      "auto_fix": null
+    }
+  ],
+  "warnings": [
+    {
+      "slide": "Slide 3",
+      "check": "heading_class",
+      "message": "Title uses inline font-size instead of template heading class — visual inconsistency"
+    }
+  ],
+  "screenshot_pass": "skipped | pass | fail",
+  "error_count": 0,
+  "warning_count": 1,
+  "passed": true,
+  "recommendation": "approve | revise"
+}
+```
+
+Save to `<session>/visual_review.json`. Update manifest: `generatedArtifacts.visualReview = { status: "complete", passed: <bool>, errors: <N>, warnings: <N> }`.
+
+---
+
+## Phase 5: Output
 
 1. Write `<session>/deck.html` (single self-contained file).
 2. Open in browser: `open <session>/deck.html`
 3. Update manifest: `generatedArtifacts.finalPresentation = { status: "complete", htmlPath: "deck.html", template: "<name>", slide_count: N }`.
 4. Present HITL Gate 3 summary:
+   - Visual QA result: passed/failed, error count, warning count (from `visual_review.json`)
+   - Any unresolved warnings (presenter acknowledges before gate opens)
    - Navigation instructions
    - Slide count + template name
    - Takeaway slide location

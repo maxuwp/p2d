@@ -27,6 +27,7 @@ Stage 2: Humanization
 Stage 3: Visual Enhancement
   3-template preview (choose your visual style)
   Generate self-contained deck.html (1920×1080)
+  Phase 4 Visual QA Review → visual_review.json
                         ↓ HITL Gate 3
 ```
 
@@ -137,8 +138,8 @@ Everything is saved to disk at every step. Nothing held only in context.
 | Gate 1 snapshot | `versions/content_v1/` |
 | Humanization | `slides_humanized.md`, `speaker_notes_humanized.md`, `humanization_report.md` |
 | Gate 2 snapshot | `versions/humanized_v1/` |
-| Compile | `slide-previews/style-a/b/c.html` → `deck.html` |
-| Gate 3 snapshot | `versions/final_v1/` |
+| Compile | `slide-previews/style-a/b/c.html` → `deck.html`, `visual_review.json` |
+| Gate 3 snapshot | `versions/final_v1/deck.html`, `visual_review.json` |
 | Reflect | `presentation_style.md` (updated), `p2d_improvements.md` |
 
 ---
