@@ -1,7 +1,7 @@
 ---
 name: p2d-draft-slides
 description: Paper-to-deck Stage 4a — PSE-Faithful Slide Markdown Drafter. Writes slide content for an approved PSE-anchored outline, grounded strictly in the paper text. Runs a PSE self-trace per slide (every slide tagged with its PSE mapping), a faithfulness check (every claim sourced to paper_text.md), and an anti-AI vocabulary pre-check before the gate. Triggers: when the umbrella paper-to-deck skill dispatches Stage 4, or when the user says "draft the slides for this talk". Output: slides.md with PSE trace comments, self-check comment at top, REFERENCES block from the paper's bibliography.
-version: "1.1"
+version: "1.2"
 ---
 
 # Paper-to-Deck Stage 4a: PSE-Faithful Slide Drafter
@@ -114,6 +114,7 @@ The `<!-- TRACES: ... -->` comment is mandatory on every content slide. It is in
 ## Slide-content rules
 
 - **3–5 bullets per slide max.** Conference-talk mode: 3 max.
+- **≤14 words per bullet, ≤30 words per card/panel item.** Deck font sizes are locked at compile time (min 24px, no shrinking to fit), so text that exceeds these budgets overflows its frame downstream. A point that needs more words belongs in the speaker notes, not on the slide.
 - **Bullets are scannable, not prose.** No em dashes in bullets — use commas or colons.
 - **Every slide includes a `(Visual: …)` line** with a concrete description of what to show. Options: chart-from-paper, diagram, table, code snippet, text-only. Never suggest "an image of X" without a real data source — use placeholder syntax instead.
 - **Every claim points back to a paper section** via `(per §N.M)`.

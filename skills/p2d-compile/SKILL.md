@@ -1,7 +1,7 @@
 ---
 name: p2d-compile
-description: Paper-to-deck Stage 5b — Template Preview Gate + HTML Deck Assembly. Before generating the full HTML deck, runs a mandatory Phase 2 template preview gate: 3 live single-slide HTML cover previews from the 47-template bold-template-pack (audience/context match, bold aesthetic match, wildcard), presenter picks a style, then the full deck.html is generated using that template's design.md verbatim. After compile, runs a mandatory Phase 4 Visual QA Reviewer pass (14 checks: word overflow, bullet count, notes embedding, visual directive fulfillment, heading consistency, navigation, pacing timer, self-containment) before the final HITL gate. No Claude image generation — visual hints become placeholder figure elements. Uses the frontend-slides 1920x1080 fixed-stage system with pacing timer. Triggers: when the umbrella paper-to-deck skill dispatches Stage 5b after humanization is approved.
-version: "1.1"
+description: Paper-to-deck Stage 5b — Template Preview Gate + HTML Deck Assembly. Before generating the full HTML deck, runs a mandatory Phase 2 template preview gate: 3 live single-slide HTML cover previews from the 47-template bold-template-pack (audience/context match, bold aesthetic match, wildcard), presenter picks a style, then the full deck.html is generated using that template's design.md verbatim. Content is laid out under the Fit-First Layout Protocol — font sizes are locked (min 24px), so content is budgeted to frame capacity before HTML is written (trim → re-arrange → split ladder, never shrink fonts). After compile, runs a mandatory Phase 4 Visual QA Reviewer pass (15 checks: word overflow, bullet count, notes embedding, visual directive fulfillment, heading consistency, navigation, pacing timer, self-containment, geometric frame-overflow scan) before the final HITL gate. No Claude image generation — visual hints become placeholder figure elements. Uses the frontend-slides 1920x1080 fixed-stage system with pacing timer. Triggers: when the umbrella paper-to-deck skill dispatches Stage 5b after humanization is approved.
+version: "1.2"
 ---
 
 # Paper-to-Deck Stage 5b: Template Preview Gate + HTML Compile
@@ -162,51 +162,35 @@ The humanized slides format follows the same `---SLIDES START/END---` delimiter 
 | Takeaway | MCS echoed in the presenter's voice (max 3 bullets) |
 | References | Paper's bibliography entries |
 
-### Layout Optimization Rule (REQUIRED for every content slide)
+### Fit-First Layout Protocol (REQUIRED for every content slide)
 
-The default failure mode is rendering items at their natural size and centering them, leaving dead whitespace below. This must never happen.
+Two failure modes, both real and both banned:
+- **Overflow**: text set at the template's locked font sizes exceeds its frame and spills across the card border. Font sizes have a hard floor (back-of-room readability) — they can NEVER shrink to make text fit, so oversized content must be cut, re-arranged, or moved to another slide.
+- **Dead space**: items rendered at natural size and centered, leaving large empty areas below.
 
-**Rule: for every visual area, choose the arrangement that maximizes the average font size, not the first arrangement that technically fits.**
+The rule that prevents both: **fit first, then fill.**
 
-Follow this decision process for each slide's visual area before writing any HTML:
+**Step 1 — Budget check (before writing any HTML).** If the chosen template's `design.md` has a "Content Capacity Budgets" section, treat those budgets as hard limits. If it doesn't, compute capacity from its geometry: chars per line ≈ frame inner width ÷ (0.5 × font-size); lines available ≈ frame inner height ÷ (font-size × line-height). Check every text element against its frame's capacity at the template's locked size. Anything over budget triggers the **overflow ladder**, in order:
 
-| Items | Try these arrangements | Pick based on |
-|---|---|---|
-| **1 item** (single box, diagram, table) | Full-width + full-height stretch | Does the item fill the vis area? If not, enlarge font until it does |
-| **2 items** | (A) side-by-side: `grid-template-columns:1fr 1fr` (narrower boxes, wider slide) | Compare: which arrangement makes each item's text larger? |
-| | (B) stacked: `flex-direction:column`, each item `flex:1` (taller boxes, full width) | Pick whichever yields the larger readable font size |
-| **3 items** | (A) 3-column row: `grid-template-columns:1fr 1fr 1fr` | Pick whichever makes the text biggest |
-| | (B) 1-column stack: each item `flex:1` | — |
-| **4 items** | (A) 2×2 grid: `grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr` | Almost always better than 1×4 or 4×1 |
-| | (B) 1×4 row (only if items are single-number stats or very short labels) | — |
-| **5+ items** | Keep as list/table; maximize font via `justify-content:space-between` | Never let items cluster at the top |
+1. **Trim words.** Excess detail moves to the speaker notes (the presenter says it; the slide doesn't show it).
+2. **Re-arrange.** Pick the arrangement that gives each item the line width it needs: sentence-length items go in full-width stacked rows, not narrow columns; 4 items fit 2×2 better than 1×4; 5+ items become a list or table.
+3. **Split the slide.** One frame family per slide — a diagram slide followed by a takeaway-cards slide beats one crowded slide. An extra slide costs seconds; text crossing a card border costs credibility.
 
-**Stretch enforcement (mandatory on every visual container):**
-- The outer `.vis` area uses `flex:1; display:flex; flex-direction:column; align-items:stretch` — it already fills the slide's non-title space.
-- Every direct child of `.vis` MUST receive `flex:1` or `height:100%` so it expands into that space.
-- Grid containers must use `align-items:stretch` so cells fill their rows.
-- Individual box/card elements must use `display:flex; flex-direction:column; justify-content:center` so text is centered in the full cell height.
-- After writing the slide HTML, mentally ask: "Would this slide have any large empty navy area?" If yes, revisit the layout.
+Never: shrink below the template minimum, allow text to cross a frame border, or clip content at the slide edge.
 
-**Anti-pattern (do not do):**
-```
-❌ <div style="display:grid;grid-template-columns:1fr 1fr;align-items:center">
-     <div class="box" style="...natural height...">...</div>
-     <div class="box" style="...natural height...">...</div>
-   </div>
-   <!-- Result: boxes float in top half, bottom half empty -->
-```
+**Mixed slides (figure/diagram + text frames):** allocate the visual its needed height first, then verify the remaining height fits the text frames at their budgets. If not, halve the per-card word budgets or split the slide. This is the single most common overflow scenario — check it explicitly.
 
-**Correct pattern:**
-```
-✓ <div class="vis">
-    <div style="flex:1;display:flex;flex-direction:column;gap:...">
-      <div class="box" style="flex:1">...</div>
-      <div class="box" style="flex:1">...</div>
-    </div>
-  </div>
-  <!-- Result: each box fills exactly half the vis height -->
-```
+**Step 2 — Arrangement choice (among arrangements that fit).** Pick the arrangement with the least dead space:
+
+| Items | Arrangements to compare |
+|---|---|
+| **1 item** (diagram, table) | Full-width; size the visual to the available area |
+| **2 items** | (A) side-by-side `1fr 1fr` vs (B) stacked full-width rows — stacked wins when items are sentences |
+| **3 items** | (A) 3-column row vs (B) 3 stacked rows — columns only if each item fits its column budget |
+| **4 items** | 2×2 grid (almost always); 1×4 row only for single-number stats or ≤3-word labels |
+| **5+ items** | List or table; distribute with `justify-content:space-between` — never cluster at the top |
+
+**Step 3 — Space distribution.** Fill leftover height by distributing space BETWEEN frames — `gap`, `justify-content:space-between`, generous top/bottom margins on the group — never by inflating card interiors. Cards are content-sized (`min-height` gives shape); `flex:1`/`height:100%` on a card container is banned: it either leaves an empty interior or, when space runs short, squeezes the frame below its content's needs and causes the exact overflow this protocol exists to prevent.
 
 ### Visual treatment (NO image generation)
 
@@ -297,6 +281,46 @@ For each `<section class="slide">` (or equivalent slide element):
 
 14. **DOCTYPE**: Verify `<!DOCTYPE html>` is present as the first line.
     - **ERROR** if missing
+
+### Check Group 6: Geometric overflow (authoritative)
+
+The word-count thresholds in Group 1 are heuristics; this check measures actual rendered geometry. It is the authoritative test for the min-font-size vs. frame-capacity conflict: fonts are locked, so any frame whose content exceeds its box is a compile defect.
+
+15. **Frame overflow scan**: Phase 3 must inline this QA hook in `deck.html` (dev-only; zero effect on presentation):
+
+    ```js
+    window.__qaScan = function(){
+      var bad = [];
+      document.querySelectorAll('.slide').forEach(function(s, i){
+        var wasActive = s.classList.contains('active');
+        s.classList.add('active','visible');
+        s.querySelectorAll('*').forEach(function(el){
+          var cs = getComputedStyle(el);
+          if (cs.display === 'none' || cs.position === 'fixed') return;
+          if (el.scrollHeight > el.clientHeight + 4 || el.scrollWidth > el.clientWidth + 4){
+            bad.push({ slide: i + 1, el: (el.className || el.tagName).toString().slice(0, 60),
+                       over_y: el.scrollHeight - el.clientHeight, over_x: el.scrollWidth - el.clientWidth });
+            el.style.outline = '3px solid red';
+          }
+        });
+        if (!wasActive) s.classList.remove('active','visible');
+      });
+      return bad;
+    };
+    if (location.search.indexOf('qa=1') > -1) {
+      window.addEventListener('load', function(){ setTimeout(function(){
+        var r = window.__qaScan();
+        console.log('QA overflow report:', JSON.stringify(r, null, 2));
+        if (r.length) alert('OVERFLOW on slides: ' + r.map(function(x){ return x.slide; }).join(', ') + ' — offenders outlined in red');
+      }, 800); });
+    }
+    ```
+
+    Run it after compile:
+    - **If browser preview tools are available**: load `deck.html`, wait for fonts, execute `window.__qaScan()` via eval, and read the returned array. This is the preferred path — the result is machine-readable.
+    - **Otherwise**: instruct the presenter to open `deck.html?qa=1`; overflowing frames are outlined in red and listed in an alert + console. Ask at Gate 3 whether any red outlines appeared.
+
+    - **ERROR** for every element with `over_y > 4` or `over_x > 4`. Resolution is the Fit-First overflow ladder (trim → re-arrange → split), then recompile and re-scan. Never resolve by shrinking fonts below the template scale or adding `overflow:hidden` to the frame — clipping is the same defect with the evidence hidden.
 
 ### Screenshot pass (run if preview tools are available)
 

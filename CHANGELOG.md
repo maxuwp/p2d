@@ -88,3 +88,30 @@ Reflection loop mirroring `posed-reflect`:
 | `p2d-reflect` | 1.2 | Reflection loop (NEW) |
 
 *Next reflection → p2d_skill.1.4*
+
+---
+
+## p2d_skill.1.4 — 2026-07-02
+
+**Fit-First Layout Protocol + geometric overflow QA.** Fixes the min-font-size vs. frame-capacity conflict: the template system locks font sizes (min 24px) for back-of-room readability, but nothing budgeted content to frame geometry, so frames overflowed (text crossing card borders) on dense slides — especially figure + card-row slides.
+
+### Root cause
+
+Three compounding gaps: (1) no capacity math anywhere — the compiler poured arbitrary-length text into fixed-geometry frames at locked sizes; (2) the old "Layout Optimization Rule" mandated `flex:1` stretch on every visual child and "maximize font size", directly contradicting the template contract ("cards are content-sized, never flex:1") — when space ran short, stretch squeezed frames below their content's needs; (3) the visual QA word-count checks were per-slide heuristics (120 words/slide), blind to per-frame geometry.
+
+### Skill changes
+
+| Skill | Version | Key changes |
+|---|---|---|
+| `p2d-compile` | 1.1 → 1.2 | "Layout Optimization Rule" replaced by the **Fit-First Layout Protocol**: (Step 1) budget check before writing HTML — read the template design.md's "Content Capacity Budgets" if present, else compute chars/line and lines-available from frame geometry; over-budget content triggers the **overflow ladder**: trim words (detail moves to speaker notes) → re-arrange (stacked rows over narrow columns, 2×2 over 1×4) → split the slide (one frame family per slide). Explicit mixed-slide rule (figure + cards = halved card budgets or split). (Step 2) arrangement chosen among arrangements that FIT, minimizing dead space. (Step 3) leftover space distributed BETWEEN frames, never by inflating card interiors — `flex:1` on cards banned. Phase 4 gains **Check Group 6: geometric overflow scan** — a dev-only `window.__qaScan()` hook inlined in every deck measures `scrollHeight`/`clientHeight` per element per slide; run via preview eval (machine-readable) or `deck.html?qa=1` (red outlines + alert). ERROR per overflowing frame; resolution is the ladder, never font shrinking or `overflow:hidden` clipping |
+| `p2d-draft-slides` | 1.1 → 1.2 | Source-level budget: ≤14 words per bullet, ≤30 words per card/panel item — points that need more words go to speaker notes |
+
+### Template pack (local, not in this repo)
+
+`frontend-slides-main/bold-template-pack/templates/uw-brand/design.md` gained a "Content Capacity Budgets" section: hard word budgets per layout (bullets ≤4×13 words; 3-up stance ≤28 words/card; tool row 3/4/5-up ≤26/18/12; action rows ≤3×16; etc.), the mixed-slide halving rule, and the overflow ladder. The compile skill reads these budgets when present and computes them for templates that lack the section.
+
+### Plugin version
+
+`plugin.json`: `1.3.0` → `1.4.0`
+
+*Next reflection → p2d_skill.1.5*
