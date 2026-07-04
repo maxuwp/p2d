@@ -1,10 +1,11 @@
-# Paper-to-Deck — Claude Code Plugin
+# Paper-to-Deck — Claude Code & Codex Plugin
 
 **Academic Paper → Polished Presentation Deck**
 
-A Claude Code plugin that converts any academic paper (PDF) into an audience-tuned slide deck with speaker notes, using a three-stage pipeline with human-in-the-loop approval gates. Ported from Dr. Xiaoguang Ma's n8n paper-to-presentation v2.4.1 workflow (192 nodes).
+Converts any academic paper (PDF) into an audience-tuned slide deck with speaker notes, using a three-stage pipeline with human-in-the-loop approval gates. Ported from Dr. Xiaoguang Ma's n8n paper-to-presentation v2.4.1 workflow (192 nodes).
 
-> **Codex version**: see [github.com/maxuwp/p2d-codex](https://github.com/maxuwp/p2d-codex)  
+> **One repo, both harnesses.** This repository ships Paper-to-Deck for **Claude Code** (`.claude-plugin/`) and **OpenAI Codex** (`.codex-plugin/`) from a single shared `skills/` set. Each tool reads its own manifest.
+
 > **POSED (lecture authoring)**: see [github.com/maxuwp/posed](https://github.com/maxuwp/posed)
 
 ---
@@ -49,14 +50,24 @@ These are confirmed with you and locked into `manifest.canonical_facts`. Every d
 
 ## Install
 
+**Claude Code:**
+
 ```bash
 claude plugin install github:maxuwp/p2d
 ```
 
-Or for local development:
+**OpenAI Codex:**
+
+```bash
+codex plugin marketplace add maxuwp/p2d
+# then install "p2d" from the Codex plugins UI
+```
+
+Or for local development (either tool reads the same directory):
 
 ```bash
 claude --plugin-dir ./p2d-plugin
+codex  --plugin-dir ./p2d-plugin
 ```
 
 ---
@@ -64,7 +75,8 @@ claude --plugin-dir ./p2d-plugin
 ## Quickstart
 
 ```
-@paper-to-deck
+/p2d:paper-to-deck     # Claude Code
+@paper-to-deck         # Codex
 ```
 
 POSED will ask for: paper PDF path, audience mode, and duration. Everything else runs automatically with your approval at each gate.
