@@ -88,7 +88,7 @@ The forked sub-skills are smaller and easier to reason about than a single multi
 
 Built from:
 - `creating presentation from a paper 2.4.1 start working on the second step.json` — 192 nodes, the n8n source
-- Two papers referenced in `~/.claude/skills/posed/README.md`
+- Two papers referenced in `the POSED repo's skills/posed/README.md (maxuwp/posed)`
 
 Agent prompts ported verbatim where possible:
 - **Paper Analyzer** — 4-key JSON schema (paper_structure, main_contribution, main_objective, references_text)
@@ -114,9 +114,9 @@ Agent prompts ported verbatim where possible:
 If Dr. Ma updates the paper-to-presentation workflow (e.g. v2.5):
 
 ```bash
-python3 ~/.claude/skills/posed/scripts/extract_n8n_prompts.py \
+python3 <posed-skill-dir>/scripts/extract_n8n_prompts.py \
     "/path/to/new-paper-to-presentation.json" \
-    ~/.claude/skills/paper-to-deck/reference/n8n-extracted
+    <paper-to-deck-skill-dir>/reference/n8n-extracted
 ```
 
 Same script as POSED uses (kept in the `posed` skill for now since both rely on it).

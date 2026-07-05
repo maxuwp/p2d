@@ -1,6 +1,6 @@
 # Paper-to-Deck Design Principles
 
-Most principles match POSED (see `~/.claude/skills/posed/reference/posed_principles.md`). The ones below are paper-to-deck-specific:
+Most principles match POSED (see `posed_principles.md` in the POSED plugin (maxuwp/posed, skills/posed/reference/)). The ones below are paper-to-deck-specific:
 
 ## 1. The paper is ground truth
 
@@ -64,4 +64,4 @@ The user's published paper explicitly calls out the pacing timer as a faculty-le
 - Visuals are data-grounded.
 - Three-level debug triage.
 
-See [POSED principles](~/.claude/skills/posed/reference/posed_principles.md) for the full list — they apply here unchanged.
+See POSED principles (maxuwp/posed → skills/posed/reference/posed_principles.md) for the full list — they apply here unchanged.
