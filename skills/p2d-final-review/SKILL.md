@@ -1,7 +1,7 @@
 ---
 name: p2d-final-review
 description: Paper-to-deck Stage 5.5 — Cross-Artifact Consistency Audit. Runs after Stage 2 (humanization approved) and optionally before Stage 3 (visual). Part A (always): cross-checks canonical_facts paper_facts items against slides and notes for exact consistency (algorithm names, numbers, authors, dates), verifies every in-slide citation maps to a real paper section, confirms all references exist in the bibliography, confirms PSE coverage, confirms MCS echoed on takeaway. Part B (optional): presenter read-through simulation + audience read-through simulation. Output: final_review.md (pass/fail per check + specific slide refs). Triggers: when paper-to-deck orchestrator dispatches Stage 5.5, or when user says "run a consistency check", "audit the deck before compiling".
-version: "1.2"
+version: "1.3"
 ---
 
 # Paper-to-Deck Stage 5.5: Final Consistency Review
@@ -70,7 +70,15 @@ Find the takeaway slide (last content slide before references, or labeled "Takea
 
 ---
 
-## Part B: Audience Simulation (optional — or auto-invoked for self-study mode)
+## Part B: Audience Simulation (opt-in — ASK first; token cost is real)
+
+The simulation reads the full deck + notes twice (presenter pass + audience pass) — it is
+the most token-expensive step in this pipeline. **Ask before launching** (exception:
+`self-study` audience mode auto-invokes it, since there is no live presenter to catch
+problems): state the cost plainly and offer **run / skip**. Record
+`finalReview.part_b_mode: "run" | "skipped"` in the manifest; if skipped, `final_review.md`
+states it prominently. Re-offer on every re-run after content edits.
+
 
 ### Presenter Read-Through
 

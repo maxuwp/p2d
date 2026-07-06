@@ -146,3 +146,15 @@ paper-to-deck 1.1→1.2 · p2d-outline 1.1→1.2 · p2d-draft-slides 1.2→1.3 (
 `plugin.json` (both manifests): `1.4.0` → `1.5.0`
 
 *Next reflection → p2d_skill.1.6*
+
+---
+
+## p2d_skill.1.6 — 2026-07-05
+
+**Part B audience simulation is opt-in with the cost stated.** The presenter/audience read-through reads the full deck + notes twice — the most token-expensive step in the pipeline. It now asks before launching (run / skip; `self-study` audience mode still auto-invokes since no live presenter will catch problems), records `finalReview.part_b_mode`, states a skip prominently in `final_review.md`, and re-offers on every re-run. p2d-final-review 1.2 → 1.3.
+
+### Plugin version
+
+`plugin.json` (both manifests): `1.5.0` → `1.6.0`
+
+*Next reflection → p2d_skill.1.7*
