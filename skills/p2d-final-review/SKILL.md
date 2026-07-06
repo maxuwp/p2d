@@ -10,11 +10,12 @@ This stage catches divergence and factual drift before the deck is compiled. It'
 
 ## When to run
 
-- **Default (always run):** `conference-talk`, `grad-seminar`
+- **Default (always run):** `conference-talk`, `grad-seminar`, `self-study` (self-study
+  also auto-invokes Part B — there is no live presenter to catch problems, so the
+  simulation is the only rehearsal the deck gets)
 - **Offer (optional):** `undergrad-intro`, `research-group-share`
-- **Skip:** `self-study` unless user requests it
 
-If the umbrella skill is orchestrating, invoke this stage automatically for conference and grad modes. For other modes, offer once: "Run a final consistency check before compiling? Takes 2–3 minutes. (Recommended for talks where accuracy matters most.)"
+If the umbrella skill is orchestrating, invoke this stage automatically for conference, grad, and self-study modes. For other modes, offer once: "Run a final consistency check before compiling? Takes 2–3 minutes. (Recommended for talks where accuracy matters most.)"
 
 ---
 
