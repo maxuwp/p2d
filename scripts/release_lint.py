@@ -51,8 +51,10 @@ for p in list(ROOT.rglob("*.md")) + list(ROOT.rglob("*.json")):
 
 # 4. Rubric dimensions sum to 100 (table style: | n | name | pts | ... ;
 #    heading style: '### N. Name — 20 points')
-for p in (ROOT / "skills" / "outline" / "reference").glob("*rubric*.md"):
+for p in (ROOT / "skills").glob("*/reference/*rubric*.md"):
     text = p.read_text()
+    if "100 points" not in text and "/100" not in text:
+        continue  # not a scored reviewer rubric (e.g., student-facing rubric refs)
     pts = [int(m.group(1)) for m in
            re.finditer(r"^\|\s*\d+\s*\|[^|]+\|\s*(\d+)\s*\|", text, re.M)]
     if not pts:
