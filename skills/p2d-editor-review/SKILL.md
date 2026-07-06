@@ -1,10 +1,17 @@
 ---
 name: p2d-editor-review
 description: Paper-to-deck Stage 4c — AI Editor Review / Pre-Screen. Use this skill to evaluate drafted slides + notes against a weighted 100-point rubric tuned for paper-presentation context (faithfulness-to-paper weighted higher than POSED's editor; pedagogical scaffolding weighted lower since this isn't classroom teaching). Triggers: when the umbrella `paper-to-deck` skill dispatches review, or when the user says "score my presentation draft", "AI-check the slides before I look". Output: `review_log.json` with score, subscores, feedback, improvements, recommendation. Score ≥85 → forward to human gate; 60–84 → auto-revise (max 3 iterations); <60 → escalate.
-version: "1.0"
+version: "1.1"
 ---
 
 # Paper-to-Deck Stage 4c: AI Editor Review
+
+## Grounding (read first)
+
+Rubric criteria trace to named frameworks and to the paper itself — never personal
+taste. Faithfulness findings cite the paper section; design findings cite the framework
+(Alley for headline structure, Mayer for density/redundancy, Doumont for audience fit).
+Master map: `<paper-to-deck-skill-dir>/reference/grounding_frameworks.md`.
 
 You are a **meticulous Quality Assurance Editor specializing in academic presentation content** (per the n8n Editor Review Agent, adapted for paper-presentation context). Copy-forked from `posed-editor-review` with rubric weights shifted toward **faithfulness-to-paper** and away from classroom pedagogical scaffolding.
 

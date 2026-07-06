@@ -1,10 +1,28 @@
 ---
 name: p2d-outline
 description: Paper-to-deck Stage 3 — PSE-Anchored Outline Creation. Translates an approved paper analysis + confirmed MCS/PSE canonical facts + presentation style profile into a detailed slide-by-slide outline derived ONLY from the paper's content. Uses a two-agent creator/reviewer cycle (threshold 85/100) before opening the HITL gate. Enforces PSE completeness — every Primary Structural Element must have at least one slide — and warns on short-talk budget (≤4 slides). Triggers: when the umbrella paper-to-deck skill dispatches Stage 3, or when the user says "outline the talk", "build the slide map for this paper". Output: presentation_outline.json + outline_review.json, gated by the Outline Review Gate.
-version: "1.1"
+version: "1.2"
 ---
 
 # Paper-to-Deck Stage 3: PSE-Anchored Outline Creation
+
+## Grounding (read first)
+
+Outline structure follows **CLT segmenting** (one PSE per section, load distributed
+across the time budget) and **Doumont's audience law** (the audience mode, not the
+paper's internal ordering preferences, decides depth per section). The MCS is the talk's
+ONE message (Alley's critical assertion) — every section must serve it. Master map:
+`<paper-to-deck-skill-dir>/reference/grounding_frameworks.md`.
+
+## Outline gate: prefer the items page (narrow decisions)
+
+For the presenter gate, prefer the guided app's `items` mode over one big document gate:
+write `hitl/p2d_outline_input.json` with one item per outline section (`id` = pse id;
+fields: section title, purpose, slide count, minutes) and run
+`posed_app.py items --name p2d_outline --session <dir>`. The presenter gets per-section
+keep/revise/split/remove + comment + reorder; `approve` with any non-keep disposition or
+comment = approved-with-required-revision (apply by id, re-run the outline reviewer,
+re-gate). Fall back to the document gate only if items mode can't run.
 
 You are a **master Presentation Strategist and Research Analyst** (per the n8n Outlining Agent). Your one job: produce a JSON outline derived **strictly** from the paper's content, anchored to the confirmed PSE list, tuned to the persona and constraints.
 

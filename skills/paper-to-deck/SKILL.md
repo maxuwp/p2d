@@ -1,10 +1,40 @@
 ---
 name: paper-to-deck
 description: Use this skill when the user wants to convert an academic paper (PDF) into a teachable slide deck — for classroom introduction, lab-group share-out, study material, or a conference-style talk. Triggers on phrases like "make a presentation from this paper", "turn this PDF into slides", "I need to give a talk on this paper", "paper-to-presentation", "build a deck from a publication", "presentation generator". This is the umbrella for the p2d-* sub-skill set, a Claude Code port of Dr. Ma's n8n paper-to-presentation workflow (the second tool in his ASEE'26 case study). Sibling system to POSED but distinct: POSED starts from a teaching plan; this skill starts from a published paper. Both produce slides + notes, both use HITL gates, both are manifest-indexed. Always confirm the paper path and audience mode (undergrad intro / grad seminar / conference talk / research-group share) before starting.
-version: "1.1"
+version: "1.2"
 ---
 
 # Paper-to-Deck Orchestrator
+
+## Grounding rule (all stages)
+
+No stage invents its own process, criteria, or rubric where an established framework
+exists. Drafters and reviewers work from the named anchors in
+`reference/grounding_frameworks.md` (Doumont, Alley assertion-evidence, Mayer, Kosslyn,
+CLT, SIFT claim-tracing, the humanizer taxonomies) and state which framework they are
+using, cited FOR its original scope. "We made it up" is a review finding.
+
+## Dependency model — upstream edits invalidate downstream artifacts
+
+The pipeline is a dependency chain: `canonical_facts` (MCS+PSE) → outline → slides+notes
+→ humanized content → style/deck. **Approving a change upstream marks every downstream
+artifact stale** — track per-artifact `valid_from_stage`, `stale_due_to`,
+`needs_regeneration`, `superseded_by` in the manifest (same schema as POSED's
+outline_dependency_model). Superseded files are archived (`versions/` snapshots), never
+silently overwritten; presenter edits live in decision files and are re-applied where
+item ids still exist. Compile is blocked while anything `needs_regeneration`. If the
+presenter revises the MCS/PSE at any gate, route back to Stage 1's confirmation and
+cascade — never patch the deck directly for an upstream concern.
+
+## Stage-end summaries & optional screenshots
+
+After every gate, print a concise summary: files generated · review score/pass ·
+decision file · snapshot taken · downstream artifacts now stale. **Screenshot capture**
+is a run setting asked at intake (`manifest.userPreferences.capture_screenshots`): when
+on, capture each HITL page (after reviewer findings attached, before presenter submit)
+to `<session>/p2d_screenshots/` — `1_mcs_pse.png`, `2_persona.png`, `3_outline.png`,
+`4_content_gate.png`, `5_humanization_gate.png`, `6_template_preview.png`,
+`7_final_deck_gate.png`. A failed capture never blocks a gate.
 
 This is the Claude Code port of Dr. Xiaoguang Ma's **paper-to-presentation 2.4.1** n8n workflow (192 nodes), restructured into a three-stage pipeline with anti-divergence enforcement and human-in-the-loop gates at every stage transition.
 
@@ -111,6 +141,19 @@ python3 <skill-dir>/scripts/posed_app.py gate --session <session-dir> \
 
 **Auto-continue rule:** no chat prompts between stages. Each stage launches immediately after the previous gate is approved. Never ask "shall I start Stage N?" — just start it and state what's beginning in one sentence.
 
+**Guided app is the current shared build (ported from POSED — the v3 freeze is lifted).**
+It adds, and this skill set should use: **cloud-storage-safe staging** (`--cloud-safe
+auto` default — OneDrive/iCloud/Dropbox sessions stage through
+`/private/tmp/posed-local-sessions/`, decisions sync back, PROJECT path printed);
+**`--status-file` handoff** for sandboxed harnesses that can't hold a blocking foreground
+server; **gate § section feedback** — every major JSON section gets keep/revise/split/
+remove + comment; `accept` with non-empty `section_feedback` is
+**accepted-with-required-revision** (apply by section_id, re-review, re-gate); and
+**`items` mode** for narrow item-list review (see the outline gate in `p2d-outline`).
+**Never accept a gate on the presenter's behalf** — no clicking/submitting without
+explicit current-turn permission; "prefer defaults" means prefill, never bypass. While a
+page is open, wait quietly (no screenshot/narration loops).
+
 If using terminal mode, ask the user:
 1. **Path to the paper PDF.** Required.
 2. **Audience mode.** Pick one:
@@ -212,6 +255,7 @@ Every sub-skill receives `audience_mode` from the manifest. They adapt:
 
 - `reference/manifest_schema.md` — paper-to-deck's manifest format (tracks `canonical_facts`, `learningAssistance`, `visualStylePreference`, `reviewLogs`).
 - `reference/hitl_protocol.md` — gate semantics (same four options as POSED).
+- `reference/grounding_frameworks.md` — the master framework map (Doumont, Alley, Mayer, Kosslyn, CLT, SIFT claim-tracing); every stage's criteria trace here.
 - `reference/design_principles.md` — paper-specific principles (paper is ground truth, no invented references, audience-mode propagation, anti-divergence enforcement).
 - `reference/n8n-extracted/` — verbatim agent prompts + Code nodes from the paper-to-presentation v2.4.1 workflow.
 

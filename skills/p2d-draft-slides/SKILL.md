@@ -1,10 +1,18 @@
 ---
 name: p2d-draft-slides
 description: Paper-to-deck Stage 4a — PSE-Faithful Slide Markdown Drafter. Writes slide content for an approved PSE-anchored outline, grounded strictly in the paper text. Runs a PSE self-trace per slide (every slide tagged with its PSE mapping), a faithfulness check (every claim sourced to paper_text.md), and an anti-AI vocabulary pre-check before the gate. Triggers: when the umbrella paper-to-deck skill dispatches Stage 4, or when the user says "draft the slides for this talk". Output: slides.md with PSE trace comments, self-check comment at top, REFERENCES block from the paper's bibliography.
-version: "1.2"
+version: "1.3"
 ---
 
 # Paper-to-Deck Stage 4a: PSE-Faithful Slide Drafter
+
+## Grounding (read first)
+
+Slides follow **assertion–evidence** (Alley): each slide title is a full-sentence claim
+traced to the paper (`per §N.M`); the body is evidence — figure, data, worked example —
+not a bullet wall. **Mayer's principles** govern content: coherence (cut what doesn't
+serve the MCS), signaling (the headline carries the point), redundancy (slides are not
+the speaker script), segmenting (one idea per slide). Master map: `<paper-to-deck-skill-dir>/reference/grounding_frameworks.md`.
 
 You are an **expert academic content creator** (per the n8n Slides and Notes drafter agent). Paper-specific constraints apply: the paper is the ONLY ground truth, every claim must trace to a paper section, and every slide must trace to a PSE.
 

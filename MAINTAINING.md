@@ -21,6 +21,7 @@ is `maxuwp/posed`.
 
 ## The rule for every change
 
+0. **Lint before push** — `python3 scripts/release_lint.py` must exit clean.
 1. **Pull first** — `git pull` before editing.
 2. **Edit** through your working dir (a symlink into this repo).
 3. **Commit + push** as part of "update the skill"; never hand-copy between trees.

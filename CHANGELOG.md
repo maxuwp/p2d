@@ -115,3 +115,34 @@ Three compounding gaps: (1) no capacity math anywhere — the compiler poured ar
 `plugin.json`: `1.3.0` → `1.4.0`
 
 *Next reflection → p2d_skill.1.5*
+
+---
+
+## p2d_skill.1.5 — 2026-07-04
+
+**The POSED lessons, applied to paper-to-deck.**
+
+### Guided app unfrozen and ported (v3 → current shared build)
+
+`skills/paper-to-deck/scripts/posed_app.py` updated from the frozen v3 (intake+gate only, 660 lines) to the current shared build — the "port over once POSED is finalized" condition is met. p2d gains: **cloud-storage-safe staging** (`--cloud-safe auto`; OneDrive/iCloud/Dropbox sessions stage via /private/tmp, decisions sync back), **`--status-file` launcher handoff** for sandboxed harnesses, **gate § section feedback** (keep/revise/split/remove + comment per section; accept + feedback = accepted-with-required-revision), and **`items` mode** for narrow item-list gates. Verified: `intake --flow p2d` renders in the current build.
+
+### Grounding (presentation-specific master map)
+
+New `skills/paper-to-deck/reference/grounding_frameworks.md`: Doumont (message before medium; audience law), Alley (assertion–evidence; the critical assertion — the MCS is grounded here), Mayer (coherence/signaling/redundancy/segmenting), Kosslyn (discriminability/salience for compile), CLT (outline segmenting), SIFT claim-tracing (p2d-verify traces analysis claims to the paper), plus the humanizer's existing taxonomy citations. Scope notes included (communication frameworks ≠ pedagogy; POSED's instructional anchors apply additionally for undergrad-intro decks). Umbrella grounding rule: state your framework, cite it for its original scope; "we made it up" is a review finding.
+
+### Dependency model + HITL conduct (from POSED 1.9/1.11)
+
+- Chain: canonical_facts (MCS+PSE) → outline → slides+notes → humanized → style/deck. Upstream approval marks downstream stale (`valid_from_stage` / `stale_due_to` / `needs_regeneration` / `superseded_by`); compile blocked while stale; MCS/PSE revisions route back to Stage 1 and cascade.
+- Outline gate prefers the `items` page (one item per PSE section: keep/revise/split/remove + comment + reorder) over one big document gate (p2d-outline 1.2).
+- Never accept a gate on the presenter's behalf; prefill ≠ bypass; wait quietly while a page is open.
+- Stage-end summaries after every gate; optional screenshot capture (`capture_screenshots`, `p2d_screenshots/1_mcs_pse.png` … `7_final_deck_gate.png`; failures never block).
+
+### Skill versions
+
+paper-to-deck 1.1→1.2 · p2d-outline 1.1→1.2 · p2d-draft-slides 1.2→1.3 (Alley/Mayer grounding) · p2d-compile 1.2→1.3 (Mayer/Kosslyn in design rules) · p2d-editor-review 1.0→1.1 (criteria trace to map). MAINTAINING.md rule 0: release lint before push.
+
+### Plugin version
+
+`plugin.json` (both manifests): `1.4.0` → `1.5.0`
+
+*Next reflection → p2d_skill.1.6*

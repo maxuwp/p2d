@@ -1,7 +1,7 @@
 ---
 name: p2d-compile
 description: Paper-to-deck Stage 5b — Template Preview Gate + HTML Deck Assembly. Before generating the full HTML deck, runs a mandatory Phase 2 template preview gate: 3 live single-slide HTML cover previews from the 47-template bold-template-pack (audience/context match, bold aesthetic match, wildcard), presenter picks a style, then the full deck.html is generated using that template's design.md verbatim. Content is laid out under the Fit-First Layout Protocol — font sizes are locked (min 24px), so content is budgeted to frame capacity before HTML is written (trim → re-arrange → split ladder, never shrink fonts). After compile, runs a mandatory Phase 4 Visual QA Reviewer pass (15 checks: word overflow, bullet count, notes embedding, visual directive fulfillment, heading consistency, navigation, pacing timer, self-containment, geometric frame-overflow scan) before the final HITL gate. No Claude image generation — visual hints become placeholder figure elements. Uses the frontend-slides 1920x1080 fixed-stage system with pacing timer. Triggers: when the umbrella paper-to-deck skill dispatches Stage 5b after humanization is approved.
-version: "1.2"
+version: "1.3"
 ---
 
 # Paper-to-Deck Stage 5b: Template Preview Gate + HTML Compile
@@ -408,6 +408,8 @@ Clean up `slide-previews/` only after the deck is approved.
 ---
 
 ## Design quality rules (non-negotiable)
+
+- **Grounded in Mayer + Kosslyn + assertion–evidence.** Signaling (headline carries the claim), coherence (no decorative clutter), discriminability/salience (Kosslyn: the important element must be visually dominant), redundancy (don't render the script on the slide). Master map: `<paper-to-deck-skill-dir>/reference/grounding_frameworks.md`.
 
 - **Template-faithful only.** Use exactly the CSS from the chosen template's `design.md`. No improvised card styles, colors, or font sizes.
 - **No AI slop.** No generic infographic layouts, clip-art icon vibes, or rainbow gradients.
