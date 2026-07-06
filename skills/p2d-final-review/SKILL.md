@@ -74,11 +74,12 @@ Find the takeaway slide (last content slide before references, or labeled "Takea
 ## Part B: Audience Simulation (opt-in — ASK first; token cost is real)
 
 The simulation reads the full deck + notes twice (presenter pass + audience pass) — it is
-the most token-expensive step in this pipeline. **Ask before launching** (exception:
-`self-study` audience mode auto-invokes it, since there is no live presenter to catch
-problems): state the cost plainly and offer **run / skip**. Record
-`finalReview.part_b_mode: "run" | "skipped"` in the manifest; if skipped, `final_review.md`
-states it prominently. Re-offer on every re-run after content edits.
+the most token-expensive step in this pipeline. For non-`self-study` modes, **ask before
+launching**: state the cost plainly and offer **run / skip**. For `self-study`, Part B
+auto-runs because there is no live presenter to catch problems; record
+`finalReview.part_b_mode: "run"` automatically. For presenter-led modes, record
+`finalReview.part_b_mode: "run" | "skipped"` in the manifest; if skipped,
+`final_review.md` states it prominently. Re-offer on every re-run after content edits.
 
 
 ### Presenter Read-Through
