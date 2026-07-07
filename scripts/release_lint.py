@@ -95,6 +95,22 @@ for p in (ROOT / "skills").rglob("SKILL.md"):
         if not any(c.exists() for c in candidates):
             warnings.append(f"[ref] {p.relative_to(ROOT)} cites reference/{name} — not found")
 
+# 7. No skill directory is swallowed by .gitignore. A bare `sources/` rule
+#    (meant for session-data corpus folders) once matched skills/sources/ too,
+#    hiding the entire Stage 4 sourcing skill from the repo. Every skills/*/SKILL.md
+#    must NOT be git-ignored.
+import subprocess
+skill_mds = [str(p.relative_to(ROOT)) for p in (ROOT / "skills").glob("*/SKILL.md")]
+if skill_mds:
+    try:
+        out = subprocess.run(["git", "-C", str(ROOT), "check-ignore"] + skill_mds,
+                             capture_output=True, text=True)
+        for line in out.stdout.splitlines():
+            errors.append(f"[gitignore] {line.strip()} is git-ignored — a skill is excluded "
+                          f"from the repo; add a negation (e.g. !skills/<name>/) to .gitignore")
+    except Exception:
+        warnings.append("[gitignore] could not run 'git check-ignore' (git unavailable?)")
+
 for w in warnings: print("WARN ", w)
 for e in errors:   print("ERROR", e)
 print(f"\nrelease_lint: {len(errors)} error(s), {len(warnings)} warning(s)")
