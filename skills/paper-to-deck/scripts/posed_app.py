@@ -180,6 +180,18 @@ AUDIT_INTAKE_FIELDS = [
      "deep - restructure assessments and topic emphasis where warranted"),
     ("capability_refresh", "AI-capability research", "select", True,
      "use-cached-if-fresh - reuse a capability profile under 90 days old|force-refresh - run new web research now"),
+    ("audit_lenses", "What should this audit cover? (pick one or more)", "checkboxes", True,
+     "core::Core vulnerability audit::Which assignments AI can complete; where AI has changed the ground under the course.||"
+     "format::Format modernization::Which content could use AI-enabled formats — NotebookLM-style shorts, interactive animations — for more active learning.||"
+     "skills::Skill obsolescence & AI-era additions::Which taught skills AI has made obsolete (not fundamentals), and which new skills — loop/workflow engineering — to add.||"
+     "currency::Content currency (advisory)::Which taught content the field has superseded (e.g. prompt → context engineering). Advisory only; we report, you decide.||"
+     "access::Accessibility::Where materials fall short of accessibility standards — and what AI now makes newly feasible."),
+    ("accessibility_depth", "Accessibility depth (only used if you picked Accessibility)", "condselect", False,
+     "wcag - WCAG 2.2 conformance check (contrast, alt text, structure, captions)|"
+     "wcag+ai - WCAG check + AI-enabled accommodations (auto audio, captioning, alt formats, pacing)|"
+     "udl - Full UDL 3.0 lens (engagement, representation, action/expression — deepest, most authoring)"),
+    ("protected_skills", "Protected foundational skills (the obsolescence lens will never propose removing these)", "textarea", False,
+     "e.g., pointer arithmetic, hand-tracing recursion, reading a datasheet — skills you consider foundational regardless of AI"),
     ("focus_areas", "Anything to focus on — or leave alone?", "textarea", False,
      "e.g., focus on the homework series; do not touch the final exam"),
     ("other_context", "Other context the AI should know", "textarea", False,
@@ -503,9 +515,32 @@ class CloudSafeSession:
 
 def render_field(key, label, ftype, required, hint):
     req = '<span class="req">*</span>' if required else ""
-    hint_html = f'<span class="hint">{esc(hint)}</span>' if hint and ftype != "select" else ""
+    hint_html = f'<span class="hint">{esc(hint)}</span>' if hint and ftype not in ("select", "checkboxes", "condselect") else ""
     lab = f'<label for="{key}">{esc(label)} {req}{hint_html}</label>'
     r = "required" if required else ""
+    if ftype == "checkboxes":
+        # hint = "key::Label::intro||key2::Label2::intro2" ; no preselection (L2)
+        rows = []
+        for opt in hint.split("||"):
+            parts = opt.split("::")
+            okey = parts[0]
+            olabel = parts[1] if len(parts) > 1 else parts[0]
+            ointro = parts[2] if len(parts) > 2 else ""
+            oc = (' onchange="if(typeof onLensToggle===\'function\')onLensToggle()"'
+                  if key == "audit_lenses" else "")
+            rows.append(
+                f'<label class="checkrow" style="align-items:flex-start;margin:7px 0">'
+                f'<input type="checkbox" name="{key}" value="{esc(okey)}"{oc} style="margin-top:4px">'
+                f'<span><b>{esc(olabel)}</b>'
+                f'<span class="hint" style="margin:0">{esc(ointro)}</span></span></label>')
+        note = ('<div class="err" id="' + key + '-err" style="display:none">Pick at least one.</div>'
+                if required else "")
+        return f'{lab}<div class="obj-card" style="padding:12px 16px">{"".join(rows)}</div>{note}'
+    if ftype == "condselect":
+        # Accessibility depth — shown only when the access lens is checked (JS toggles it).
+        opts = "".join(f'<option value="{esc(o)}">{esc(o)}</option>' for o in hint.split("|"))
+        return (f'<div id="{key}-wrap" style="display:none">{lab}'
+                f'<select id="{key}" name="{key}">{opts}</select></div>')
     if ftype == "textarea":
         return f'{lab}<textarea id="{key}" name="{key}" {r}></textarea>'
     if ftype == "select":
@@ -561,6 +596,16 @@ function updateFmtDesc() {
   div.style.display = d ? 'block' : 'none';
 }
 updateFmtDesc();"""
+    lens_js = ""
+    if flow == "audit":
+        lens_js = """
+// Show the accessibility-depth select only when the Accessibility lens is checked (L2: no default).
+function onLensToggle() {
+  var checked = Array.from(document.querySelectorAll('input[name=audit_lenses]:checked')).map(e=>e.value);
+  var wrap = document.getElementById('accessibility_depth-wrap');
+  if (wrap) wrap.style.display = checked.indexOf('access') >= 0 ? 'block' : 'none';
+}
+onLensToggle();"""
     return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
 <title>{esc(title)}</title><style>{BASE_CSS}</style></head><body>
 <div class="container">
@@ -575,11 +620,32 @@ updateFmtDesc();"""
 <script>
 {post_js}
 {fmt_desc_js}
+{lens_js}
 function submitIntake() {{
   const f = document.getElementById('f');
   if (!f.reportValidity()) return;
   const data = {{}};
-  for (const el of f.querySelectorAll('input,textarea,select')) data[el.name] = el.value;
+  const cbGroups = {{}};      // name -> {{required, checked:[]}}
+  for (const el of f.querySelectorAll('input,textarea,select')) {{
+    if (el.type === 'checkbox') {{
+      const g = cbGroups[el.name] || (cbGroups[el.name] = {{checked: []}});
+      if (el.checked) g.checked.push(el.value);
+      continue;
+    }}
+    // skip hidden conditional selects that aren't visible (e.g. accessibility_depth when access unchecked)
+    const wrap = document.getElementById(el.name + '-wrap');
+    if (wrap && wrap.style.display === 'none') continue;
+    data[el.name] = el.value;
+  }}
+  // Required checkbox groups: audit_lenses must have >=1
+  for (const name in cbGroups) {{
+    data[name] = cbGroups[name].checked.join(',');
+  }}
+  if (('audit_lenses' in cbGroups) && cbGroups['audit_lenses'].checked.length === 0) {{
+    const e = document.getElementById('audit_lenses-err');
+    if (e) e.style.display = 'block';
+    return;
+  }}
   document.getElementById('go').disabled = true;
   postForm(data).then(ok => {{ if (!ok) document.getElementById('go').disabled = false; }});
 }}
@@ -1766,6 +1832,129 @@ def items_page(cfg, title):
 
 
 # ----------------------------------------------------------------------------
+# Scope page — declarative preference/scope form (e.g. Stage 4.0 Source Scope Gate)
+#   Reads <session>/hitl/<name>_input.json:
+#     {title, intro, submit_label, note,
+#      groups:[{key, label, intro,
+#               type:"checks"|"radio"|"text"|"textlist",
+#               options:[{key,label,desc,selected}],   # checks/radio
+#               value, values, placeholder}]}
+#   Writes <session>/hitl/<name>_decision.json:
+#     {name, groups:{<key>: [selected keys] | "selected key" | "text" | [texts]},
+#      submitted_at}
+#   Generic — the categories/options live in the SKILL's input json, not here.
+# ----------------------------------------------------------------------------
+
+SCOPE_JS = r"""
+const CFG = __CFG__;
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  }
+  for (const c of kids) if (c != null) e.append(c);
+  return e;
+}
+function autosize(t){ t.style.height='auto'; t.style.height=(t.scrollHeight+4)+'px'; }
+const STATE = {};   // group key -> value
+
+function renderGroup(g) {
+  const card = el('div', { class: 'card' });
+  card.append(el('h2', { style: 'font-size:1.05rem;margin-bottom:2px' }, g.label || g.key));
+  if (g.intro) card.append(el('p', { class: 'editnote', style: 'margin:0 0 10px' }, g.intro));
+
+  if (g.type === 'checks' || g.type === 'radio') {
+    STATE[g.key] = g.type === 'checks'
+      ? (g.options || []).filter(o => o.selected).map(o => o.key)
+      : ((g.options || []).find(o => o.selected) || {}).key || '';
+    for (const o of (g.options || [])) {
+      const inp = el('input', { type: g.type === 'checks' ? 'checkbox' : 'radio', name: g.key });
+      inp.checked = !!o.selected;
+      inp.addEventListener('change', () => {
+        if (g.type === 'radio') STATE[g.key] = o.key;
+        else {
+          const set = new Set(STATE[g.key]);
+          inp.checked ? set.add(o.key) : set.delete(o.key);
+          STATE[g.key] = [...set];
+        }
+      });
+      const desc = o.desc ? el('span', { class: 'muted' }, ' — ' + o.desc) : null;
+      card.append(el('label', { class: 'pol-row', style: 'display:flex;gap:8px;align-items:flex-start;margin:4px 0' },
+        inp, el('span', {}, el('b', {}, o.label), desc)));
+    }
+  } else if (g.type === 'text') {
+    STATE[g.key] = g.value || '';
+    const ta = el('textarea', { class: 'val-area', rows: '2', placeholder: g.placeholder || '' });
+    ta.value = STATE[g.key];
+    setTimeout(() => autosize(ta), 0);
+    ta.addEventListener('input', () => { STATE[g.key] = ta.value; autosize(ta); });
+    card.append(ta);
+  } else if (g.type === 'textlist') {
+    STATE[g.key] = Array.isArray(g.values) ? [...g.values] : [];
+    const list = el('div', {});
+    const draw = () => {
+      list.innerHTML = '';
+      STATE[g.key].forEach((v, i) => {
+        const inp = el('input', { type: 'text', class: 'val-input', placeholder: g.placeholder || '' });
+        inp.value = v;
+        inp.addEventListener('input', () => { STATE[g.key][i] = inp.value; });
+        const rm = el('button', { class: 'mini-btn', type: 'button',
+          onclick: () => { STATE[g.key].splice(i, 1); draw(); } }, '× remove');
+        list.append(el('div', { class: 'arr-item', style: 'display:flex;gap:6px;margin:3px 0' }, inp, rm));
+      });
+      list.append(el('button', { class: 'mini-btn add', type: 'button',
+        onclick: () => { STATE[g.key].push(''); draw(); } }, '+ Add'));
+    };
+    draw();
+    card.append(list);
+  }
+  return card;
+}
+
+function submitScope() {
+  // drop empty textlist entries
+  const out = {};
+  for (const [k, v] of Object.entries(STATE))
+    out[k] = Array.isArray(v) ? v.map(x => (typeof x === 'string' ? x.trim() : x)).filter(x => x !== '') : v;
+  const btn = document.getElementById('btn-go'); btn.disabled = true;
+  postForm({ groups: JSON.stringify(out) }).then(ok => { if (!ok) btn.disabled = false; });
+}
+
+(function init(){
+  const host = document.getElementById('groups');
+  for (const g of (CFG.groups || [])) host.append(renderGroup(g));
+})();
+"""
+
+
+def scope_page(cfg, title):
+    cfg_literal = "JSON.parse(" + js_embed(json.dumps(cfg)) + ")"
+    post_js = POST_JS.replace("__DONE__", js_embed(DONE_HTML))
+    js = SCOPE_JS.replace("__CFG__", cfg_literal)
+    note = f'<p class="editnote">{esc(cfg["note"])}</p>' if cfg.get("note") else ""
+    return f"""<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>{esc(title)}</title><style>{BASE_CSS}</style></head><body>
+<div class="container">
+  <div class="header"><h1>{esc(title)}</h1>
+    <p>{esc(cfg.get("intro", ""))}</p></div>
+  <div id="groups"></div>
+  {note}
+  <div class="card">
+    <div class="err" id="err"></div>
+    <button class="btn btn-accept" id="btn-go" type="button" onclick="submitScope()">{esc(cfg.get("submit_label", "✓ Submit scope — AI proceeds within it"))}</button>
+  </div>
+  <footer>POSED guided app · scope gate · local only (127.0.0.1)</footer>
+</div>
+<script>
+{post_js}
+{js}
+</script>
+</body></html>"""
+
+
+# ----------------------------------------------------------------------------
 # Ledger page — itemized change-proposal review (AI-impact course audit)
 #   Reads a change_ledger.json: {course, generated_at, changes:[{id, severity,
 #     category, file, location, finding, current, proposed, rationale, effort,
@@ -1794,7 +1983,8 @@ LEDGER_CSS = """
                 margin:0; font-size:.9rem; cursor:pointer; }
 .decide input { width:auto; }
 .chg { border-left:4px solid var(--border); transition:border-color .15s, background .15s; }
-.chg.is-approve { border-left-color:#16a34a; background:#f6fef8; }
+.chg.is-approve, .chg.is-autofix { border-left-color:#16a34a; background:#f6fef8; }
+.chg.is-manual  { border-left-color:#2563eb; background:#f5f8ff; }
 .chg.is-reject  { border-left-color:#dc2626; background:#fef7f7; opacity:.75; }
 .chg.is-defer   { border-left-color:#d97706; }
 .bulk-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px; }
@@ -1802,6 +1992,14 @@ LEDGER_CSS = """
                    padding:6px 14px; cursor:pointer; font-size:.85rem; }
 .bulk-bar button:hover { border-color:var(--primary); color:var(--primary); }
 #tally { font-weight:600; font-size:.9rem; margin-left:auto; }
+.lens { font-size:.72rem; font-weight:600; padding:2px 9px; border-radius:99px; margin-left:6px;
+        background:#eef2ff; color:#4338ca; }
+.lens-format{background:#f0fdf4;color:#15803d;} .lens-skills{background:#fef3c7;color:#92400e;}
+.lens-currency{background:#f3e8ff;color:#7c2d92;} .lens-access{background:#e0f2fe;color:#075985;}
+.preview-row { display:flex; align-items:center; gap:8px; margin:8px 0 2px; font-size:.88rem; }
+.preview-row input { width:auto; }
+.cost-note { background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px 12px;
+             font-size:.82rem; color:#92400e; margin:10px 0; }
 """
 
 
@@ -1825,24 +2023,52 @@ def ledger_page(ledger, title):
                     + (f'<br>{meta}' if meta else "") + "</p>"
         current = (f'<details><summary>Current content</summary><pre>{esc(c.get("current",""))}</pre></details>'
                    if c.get("current") else "")
+        lens = (c.get("lens") or "").lower()
+        lens_badge = (f'<span class="lens lens-{esc(lens)}">{esc(lens)}</span>' if lens else "")
+        # Access items get a 4-way disposition (auto-fix vs manual); others the standard 3-way.
+        if lens == "access":
+            decide = (
+              f'<div class="decide">'
+              f'<label><input type="radio" name="dec-{esc(cid)}" value="autofix" onchange="mark(this)"> ✅ Auto-fix</label>'
+              f'<label><input type="radio" name="dec-{esc(cid)}" value="manual" onchange="mark(this)"> 🛠 I\'ll fix manually</label>'
+              f'<label><input type="radio" name="dec-{esc(cid)}" value="reject" onchange="mark(this)"> ❌ Reject</label>'
+              f'<label><input type="radio" name="dec-{esc(cid)}" value="defer" checked onchange="mark(this)"> ⏸ Decide later</label>'
+              f'</div>')
+        else:
+            decide = (
+              f'<div class="decide">'
+              f'<label><input type="radio" name="dec-{esc(cid)}" value="approve" onchange="mark(this)"> ✅ Approve</label>'
+              f'<label><input type="radio" name="dec-{esc(cid)}" value="reject" onchange="mark(this)"> ❌ Reject</label>'
+              f'<label><input type="radio" name="dec-{esc(cid)}" value="defer" checked onchange="mark(this)"> ⏸ Decide later</label>'
+              f'</div>')
+        # Format items can request an on-demand preview (nothing generates unless checked).
+        preview_row = ""
+        if lens == "format":
+            preview_row = (
+              f'<div class="preview-row"><input type="checkbox" class="preview-req" id="pv-{esc(cid)}">'
+              f'<label for="pv-{esc(cid)}" style="margin:0;font-weight:500">Generate a preview of this format '
+              f'<span class="hint" style="margin:0">(uses tokens — only runs if checked)</span></label></div>')
         cards.append(f"""
-  <div class="obj-card chg is-defer" data-id="{esc(cid)}">
+  <div class="obj-card chg is-defer" data-id="{esc(cid)}" data-lens="{esc(lens)}">
     <div class="card-head">
       <b>#{i} <span class="chg-file">{esc(c.get("file",""))}</span>{loc}</b>
-      <span><span class="sev sev-{esc(sev)}">{esc(sev.upper())}</span><span class="cat">{esc(c.get("category",""))}</span></span>
+      <span><span class="sev sev-{esc(sev)}">{esc(sev.upper())}</span><span class="cat">{esc(c.get("category",""))}</span>{lens_badge}</span>
     </div>
     <p>{esc(c.get("finding",""))}</p>
     {current}
     <label style="margin-top:8px">Proposed change <span class="hint">(edit directly — approving keeps your edits)</span></label>
     <textarea class="val-area proposed" rows="4">{esc(c.get("proposed",""))}</textarea>
     {rationale}
-    <div class="decide">
-      <label><input type="radio" name="dec-{esc(cid)}" value="approve" onchange="mark(this)"> ✅ Approve</label>
-      <label><input type="radio" name="dec-{esc(cid)}" value="reject" onchange="mark(this)"> ❌ Reject</label>
-      <label><input type="radio" name="dec-{esc(cid)}" value="defer" checked onchange="mark(this)"> ⏸ Decide later</label>
-    </div>
+    {decide}
+    {preview_row}
     <input type="text" class="comment" placeholder="Optional note to the AI about this item (e.g., 'yes, but keep the page budget')">
   </div>""")
+    has_format = any((c.get("lens") or "").lower() == "format" for c in changes)
+    cost_note = ('<div class="cost-note">💡 Format previews cost tokens — <b>nothing generates unless you '
+                 'request it</b>. Tick "Generate a preview" on any format item, or use "Preview all formats" below. '
+                 'Skip it and you just get the written spec.</div>' if has_format else "")
+    preview_all_btn = ('<button type="button" onclick="previewAll()">Preview all formats</button>'
+                       if has_format else "")
     intro = (f'{len(changes)} proposed changes for <b>{esc(ledger.get("course",""))}</b>. '
              "Decide each item — only approved items will be applied, and always as revised "
              "copies with diffs; your original files are never modified.")
@@ -1851,11 +2077,13 @@ def ledger_page(ledger, title):
 <div class="container">
   <div class="header"><h1>{esc(title)}</h1><p>{intro}</p></div>
   <div class="card">
+    {cost_note}
     <div class="bulk-bar">
       <span style="font-size:.85rem;color:var(--muted)">Bulk:</span>
       <button type="button" onclick="bulk('approve')">Approve all</button>
       <button type="button" onclick="bulk('reject')">Reject all</button>
       <button type="button" onclick="bulk('defer')">Reset all to Decide later</button>
+      {preview_all_btn}
       <span id="tally"></span>
     </div>
     {''.join(cards)}
@@ -1874,16 +2102,22 @@ function mark(radio) {{
   tally();
 }}
 function bulk(val) {{
+  // 'approve' maps to 'autofix' on access items (they have no plain approve radio).
   document.querySelectorAll('.chg').forEach(card => {{
-    const r = card.querySelector('input[value="'+val+'"]');
-    r.checked = true; mark(r);
+    let want = val;
+    if (val === 'approve' && card.dataset.lens === 'access') want = 'autofix';
+    const r = card.querySelector('input[value="'+want+'"]');
+    if (r) {{ r.checked = true; mark(r); }}
   }});
+}}
+function previewAll() {{
+  document.querySelectorAll('.preview-req').forEach(cb => cb.checked = true);
 }}
 function tally() {{
   let a=0, r=0, d=0;
   document.querySelectorAll('.chg').forEach(card => {{
     const v = card.querySelector('input[type=radio]:checked').value;
-    if (v==='approve') a++; else if (v==='reject') r++; else d++;
+    if (v==='approve'||v==='autofix'||v==='manual') a++; else if (v==='reject') r++; else d++;
   }});
   document.getElementById('tally').textContent = '✅ '+a+' · ❌ '+r+' · ⏸ '+d;
 }}
@@ -1894,12 +2128,15 @@ async function submitLedger() {{
   document.querySelectorAll('.chg').forEach(card => {{
     const id = card.dataset.id;
     const proposed = card.querySelector('.proposed').value;
+    const pv = card.querySelector('.preview-req');
     decisions.push({{
       id: id,
       decision: card.querySelector('input[type=radio]:checked').value,
+      lens: card.dataset.lens || null,
       proposed: proposed,
       edited: proposed !== (orig[id] || ''),
-      comment: card.querySelector('.comment').value.trim()
+      comment: card.querySelector('.comment').value.trim(),
+      preview_requested: pv ? pv.checked : false
     }});
   }});
   const btn = document.getElementById('btn-go'); btn.disabled = true;
@@ -2070,7 +2307,7 @@ def serve_once(page_html, port=0, session_dir=None, status_file=None, status_pay
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("mode", choices=["intake", "gate", "materials", "plan-wizard", "choose", "ledger", "items"])
+    ap.add_argument("mode", choices=["intake", "gate", "materials", "plan-wizard", "choose", "ledger", "items", "scope"])
     ap.add_argument("--step", type=int, choices=[1, 2, 3], default=None,
                     help="Planning sub-stage (plan-wizard mode): 1=outcomes/topics, 2=style, 3=deliverables/schedule")
     ap.add_argument("--session", required=True, help="Session folder")
@@ -2155,6 +2392,25 @@ def main():
                    "items": items,
                    "submitted_at": datetime.now(timezone.utc).isoformat()}
         out_path = os.path.join(hitl_dir, f"{name}_decision.json")
+    elif args.mode == "scope":
+        name = args.name
+        if not name:
+            ap.error("scope mode requires --name (e.g. source_scope)")
+        if cloud.active:
+            cloud.stage_session_file(os.path.join("hitl", f"{name}_input.json"))
+        in_path = os.path.join(hitl_dir, f"{name}_input.json")
+        if not os.path.exists(in_path):
+            ap.error(f"scope needs {in_path} (write the scope-form spec first)")
+        cfg = json.load(open(in_path))
+        title = args.title or cfg.get("title", "Scope")
+        result = run_page(scope_page(cfg, title))
+        try:
+            groups = json.loads(result.get("groups", "{}"))
+        except Exception:
+            groups = {}
+        payload = {"name": name, "groups": groups,
+                   "submitted_at": datetime.now(timezone.utc).isoformat()}
+        out_path = os.path.join(hitl_dir, f"{name}_decision.json")
     elif args.mode == "plan-wizard":
         step = args.step or 1
         if cloud.active:
@@ -2181,11 +2437,26 @@ def main():
             decisions = json.loads(result.get("decisions", "[]"))
         except Exception:
             decisions = []
-        counts = {"approve": 0, "reject": 0, "defer": 0}
+        counts = {"approve": 0, "reject": 0, "defer": 0, "autofix": 0, "manual": 0}
+        preview_requested = 0
+        format_total = 0
         for d in decisions:
-            counts[d.get("decision", "defer")] = counts.get(d.get("decision", "defer"), 0) + 1
+            dec = d.get("decision", "defer")
+            counts[dec] = counts.get(dec, 0) + 1
+            if (d.get("lens") or "") == "format":
+                format_total += 1
+            if d.get("preview_requested"):
+                preview_requested += 1
+        # preview_mode: none / selected / all (all = every format item was requested)
+        if preview_requested == 0:
+            preview_mode = "none"
+        elif format_total and preview_requested >= format_total:
+            preview_mode = "all"
+        else:
+            preview_mode = "selected"
         payload = {"stage": stage, "ledger_path": project_ledger_path, "decisions": decisions,
-                   "counts": counts,
+                   "counts": counts, "preview_mode": preview_mode,
+                   "preview_requested": preview_requested,
                    "submitted_at": datetime.now(timezone.utc).isoformat()}
         out_path = os.path.join(hitl_dir, f"{stage}_decision.json")
     elif args.mode == "intake":

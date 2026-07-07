@@ -1,7 +1,7 @@
 {
   "name": "p2d",
   "description": "Paper-to-Deck \u2014 Academic Paper to Presentation Skill Set. Converts an academic paper (PDF) into a polished, audience-tuned slide deck with speaker notes, using a three-stage pipeline: Content Creation (paper ingestion, PSE-anchored outline, drafted slides + notes), Humanization (AI-tell removal + presenter voice personalization), and Visual Enhancement (47-template preview gate + HTML deck). Anti-divergence mechanism locks the paper's Main Contribution Statement (MCS) and Primary Structural Elements (PSE) at ingest, anchoring every downstream stage. Includes cross-artifact consistency review and a reflection loop for progressive presenter improvement.",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "author": {
     "name": "Xiaoguang Ma",
     "email": "maxuwplatt@gmail.com"
