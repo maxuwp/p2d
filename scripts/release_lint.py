@@ -66,13 +66,22 @@ for p in (ROOT / "skills").glob("*/reference/*rubric*.md"):
         warnings.append(f"[rubric] {p.name}: could not parse dimension points")
 
 # 5. Changelog covers the current plugin version (heading required — a
-#    "*Next reflection → …*" teaser line does not count)
+#    "*Next reflection → …*" teaser line does not count) AND is not duplicated.
+#    Duplicate same-version headings happen when both harnesses ship a feature
+#    under the same number and git merges both appends cleanly.
 if plugin_version:
     prefix = "p2d_skill." if (ROOT / "skills" / "paper-to-deck").exists() else "posed_skill."
+    changelog = (ROOT / "CHANGELOG.md").read_text()
     major_minor = prefix + ".".join(plugin_version.split(".")[:2])
-    if f"## {major_minor} " not in (ROOT / "CHANGELOG.md").read_text():
+    if f"## {major_minor} " not in changelog:
         errors.append(f"[changelog] no '## {major_minor}' entry heading "
                       f"(plugin.json is {plugin_version})")
+    dupes = [h for h in re.findall(rf"^## ({re.escape(prefix)}\d+\.\d+) ", changelog, re.M)
+             if re.findall(rf"^## {re.escape(h)} ", changelog, re.M).__len__() > 1]
+    for h in sorted(set(dupes)):
+        n = len(re.findall(rf"^## {re.escape(h)} ", changelog, re.M))
+        errors.append(f"[changelog] '## {h}' heading appears {n}× — merge the "
+                      f"duplicate entries into one (or bump the second to a new version)")
 
 # 6. Cited reference files exist (heuristic, warning only)
 cite = re.compile(r"`(?:<posed-skill-dir>/)?reference/([A-Za-z0-9_\-]+\.md)`")

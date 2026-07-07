@@ -49,4 +49,13 @@ reads its own manifest.
 
 ## Versioning
 
+**Version collisions (two harnesses, same number).** Because Codex and Claude each pick the
+next version independently, both can ship different features under the same `X.Y` in one
+window — git then merges both changelog appends cleanly, leaving two same-numbered headings.
+The convention: **whoever pushes second bumps to the next number** and updates plugin.json to
+match. If two features genuinely release together, merge them under ONE heading with a single
+version block. `scripts/release_lint.py` flags duplicate `## <prefix>_skill.X.Y` headings so
+this can't reach a push unnoticed.
+
+
 `p2d_skill.X.Y`, tracked in `CHANGELOG.md`. Record which harness surfaced each change.
