@@ -98,16 +98,22 @@ for p in (ROOT / "skills").rglob("SKILL.md"):
 # 7. No skill directory is swallowed by .gitignore. A bare `sources/` rule
 #    (meant for session-data corpus folders) once matched skills/sources/ too,
 #    hiding the entire Stage 4 sourcing skill from the repo. Every skills/*/SKILL.md
-#    must NOT be git-ignored.
+#    must NOT be matched by an ignore rule.
+#    NOTE: --no-index is REQUIRED. Plain `git check-ignore` never reports a file
+#    that is already TRACKED, so once the skill is committed the check silently
+#    stops being falsifiable (removing the negation would not fail the lint).
+#    --no-index evaluates the ignore RULES regardless of tracked status, which is
+#    the actual thing we want to guard.
 import subprocess
 skill_mds = [str(p.relative_to(ROOT)) for p in (ROOT / "skills").glob("*/SKILL.md")]
 if skill_mds:
     try:
-        out = subprocess.run(["git", "-C", str(ROOT), "check-ignore"] + skill_mds,
+        out = subprocess.run(["git", "-C", str(ROOT), "check-ignore", "--no-index"] + skill_mds,
                              capture_output=True, text=True)
         for line in out.stdout.splitlines():
-            errors.append(f"[gitignore] {line.strip()} is git-ignored — a skill is excluded "
-                          f"from the repo; add a negation (e.g. !skills/<name>/) to .gitignore")
+            errors.append(f"[gitignore] {line.strip()} is matched by an ignore rule — a skill "
+                          f"is (or would be) excluded from the repo; add a negation "
+                          f"(e.g. !skills/<name>/) to .gitignore")
     except Exception:
         warnings.append("[gitignore] could not run 'git check-ignore' (git unavailable?)")
 
