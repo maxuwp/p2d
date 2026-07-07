@@ -163,7 +163,7 @@ paper-to-deck 1.1→1.2 · p2d-outline 1.1→1.2 · p2d-draft-slides 1.2→1.3 (
 
 ## p2d_skill.1.7 — 2026-07-05
 
-**Shared app synced + macOS Codex Desktop HITL rule added.** Ports the current `posed_app.py` (now byte-identical to the POSED copy, including the new generic `scope` mode) and adds `skills/paper-to-deck/reference/codex_desktop_hitl_launcher.md` — the umbrella already referenced this file but it had never been created (latent broken reference, now fixed). Same macOS rule as POSED: run the approved `posed_app.py` command directly with `--status-file`, read `Form ready: <url>`, open in the Codex in-app browser — never Finder/`.app`/external browser/`file://`; command prefix approved before the stage; scoped to macOS (Windows/Linux not yet validated). CR2's Source Scope Gate is POSED-only (p2d's corpus is the paper itself) and is deliberately NOT ported.
+**Shared app synced + macOS Codex Desktop HITL rule added.** Ports the current `posed_app.py` (now byte-identical to the POSED copy, including the new generic `scope` mode) and adds `skills/paper-to-deck/reference/codex_desktop_hitl_launcher.md` (new; the umbrella's `--status-file` note now points at it so it isn't an orphan). Same macOS rule as POSED: run the approved `posed_app.py` command directly with `--status-file`, read `Form ready: <url>`, open in the Codex in-app browser — never Finder/`.app`/external browser/`file://`; command prefix approved before the stage; scoped to macOS (Windows/Linux not yet validated). CR2's Source Scope Gate is POSED-only (p2d's corpus is the paper itself) and is deliberately NOT ported.
 
 ### Plugin version
 

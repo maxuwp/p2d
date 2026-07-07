@@ -154,6 +154,8 @@ remove + comment; `accept` with non-empty `section_feedback` is
 explicit current-turn permission; "prefer defaults" means prefill, never bypass. While a
 page is open, wait quietly (no screenshot/narration loops).
 
+> **⚠️ macOS Codex Desktop:** don't use Finder, `.app` launchers, external browsers, or `file://` pages for gates — run the approved `posed_app.py` command directly with `--status-file`, read `Form ready: <url>`, and open it in the Codex in-app browser. Full rule + pre-flight checklist: `reference/codex_desktop_hitl_launcher.md`. (macOS-validated; Windows/Linux not yet validated.)
+
 If using terminal mode, ask the user:
 1. **Path to the paper PDF.** Required.
 2. **Audience mode.** Pick one:
